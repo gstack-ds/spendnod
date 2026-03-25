@@ -1,0 +1,146 @@
+from __future__ import annotations
+
+import uuid
+from datetime import datetime
+from decimal import Decimal
+from enum import Enum
+from typing import Any, Optional
+
+from pydantic import BaseModel, Field
+
+
+class AgentStatus(str, Enum):
+    active = "active"
+    paused = "paused"
+    revoked = "revoked"
+
+
+class RequestStatus(str, Enum):
+    auto_approved = "auto_approved"
+    pending = "pending"
+    approved = "approved"
+    denied = "denied"
+    expired = "expired"
+    cancelled = "cancelled"
+
+
+class RuleType(str, Enum):
+    max_per_transaction = "max_per_transaction"
+    max_per_day = "max_per_day"
+    max_per_month = "max_per_month"
+    allowed_vendors = "allowed_vendors"
+    blocked_vendors = "blocked_vendors"
+    allowed_categories = "allowed_categories"
+    blocked_categories = "blocked_categories"
+    require_approval_above = "require_approval_above"
+    auto_approve_below = "auto_approve_below"
+
+
+# --- Agent schemas ---
+
+class AgentCreate(BaseModel):
+    name: str = Field(..., min_length=1, max_length=100)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class AgentResponse(BaseModel):
+    id: uuid.UUID
+    name: str
+    api_key_prefix: str
+    status: AgentStatus
+    metadata: dict[str, Any]
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class AgentCreateResponse(AgentResponse):
+    api_key: str  # full key — returned once on creation, never stored or returned again
+
+
+class AgentUpdate(BaseModel):
+    name: Optional[str] = Field(None, min_length=1, max_length=100)
+    status: Optional[AgentStatus] = None
+
+
+# --- Rule schemas ---
+
+class RuleCreate(BaseModel):
+    rule_type: RuleType
+    value: dict[str, Any] = Field(
+        ...,
+        description=(
+            'Rule value payload. Examples: {"amount": 50.0} for amount rules, '
+            '{"vendors": ["AWS", "GCP"]} for vendor rules.'
+        ),
+    )
+
+
+class RuleResponse(BaseModel):
+    id: uuid.UUID
+    agent_id: uuid.UUID
+    rule_type: RuleType
+    value: dict[str, Any]
+    is_active: bool
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class RuleUpdate(BaseModel):
+    value: Optional[dict[str, Any]] = None
+    is_active: Optional[bool] = None
+
+
+# --- Authorization request schemas ---
+
+class AuthorizeRequest(BaseModel):
+    action: str = Field(..., min_length=1, max_length=100)
+    amount: Optional[Decimal] = Field(None, ge=0)
+    currency: str = Field(default="USD", max_length=3)
+    vendor: Optional[str] = Field(None, max_length=200)
+    category: Optional[str] = Field(None, max_length=100)
+    description: Optional[str] = Field(None, max_length=500)
+
+
+class AuthorizeResponse(BaseModel):
+    id: uuid.UUID
+    status: RequestStatus
+    approval_token: Optional[str] = None
+    resolved_by: Optional[str] = None
+    rule_evaluation: Optional[dict[str, Any]] = None
+    expires_at: Optional[datetime] = None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ApproveRequest(BaseModel):
+    note: Optional[str] = None
+
+
+class DenyRequest(BaseModel):
+    reason: Optional[str] = None
+
+
+# --- Dashboard schemas ---
+
+class DashboardStats(BaseModel):
+    total_requests: int
+    auto_approved: int
+    pending: int
+    approved: int
+    denied: int
+    expired: int
+    total_spend_approved: Decimal
+    agents_active: int
+
+
+class ActivityItem(BaseModel):
+    id: uuid.UUID
+    agent_name: str
+    action: str
+    amount: Optional[Decimal]
+    vendor: Optional[str]
+    status: RequestStatus
+    created_at: datetime
