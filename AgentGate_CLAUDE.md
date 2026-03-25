@@ -418,4 +418,86 @@ print(request.id)       # UUID
 print(request.status)   # "pending"
 
 # Check later
-status = gate.check(
+status = gate.check(request.id)
+print(status["status"])  # "pending", "approved", "denied", "expired"
+```
+
+---
+
+## Absolute Rules
+
+1. **Never store API keys in plaintext** — SHA-256 hash on write, hash on lookup
+2. **Never skip or disable failing tests** — fix the issue or flag it
+3. **Never merge PRs** — leave merging to Gary
+4. **Audit log entries are added to the session but NOT committed** — caller commits atomically with the primary record
+5. **`Agent.metadata_` (underscore) is the Python attribute** — maps to `metadata` column. Never use `Agent.metadata` — that's SQLAlchemy's `MetaData` object at the class level
+
+---
+
+## Active Gotchas
+
+**2026-03-23**
+**What happened:** `AgentResponse` couldn't serialize ORM `Agent` objects — Pydantic read `agent.metadata` and got SQLAlchemy's `MetaData()` object, not our dict.
+**Root cause:** `DeclarativeBase` exposes a class-level `.metadata` (`MetaData`) attribute that shadows our JSON column when accessed via `agent.metadata`.
+**Fix:** Column stored as `metadata_` in Python (`mapped_column("metadata", ...)`), schema uses `Field(validation_alias="metadata_")` with `populate_by_name=True`.
+**Rule:** Always use `metadata_` for the Python attribute. Never use `Field(alias=...)` alone — use `validation_alias` + `populate_by_name=True`.
+
+**2026-03-23**
+**What happened:** `Rule.__new__(Rule)` then setting attributes via assignment raised `AttributeError: 'NoneType' object has no attribute 'set'` in SQLAlchemy instrumented columns.
+**Root cause:** SQLAlchemy ORM instruments attributes during `__init__`. Bypassing `__init__` via `__new__` leaves descriptors uninitialized.
+**Fix:** Always use proper constructors: `Rule(id=..., rule_type=..., ...)`. Use `SimpleNamespace` for pure unit tests that don't need ORM.
+**Rule:** Never use `Foo.__new__(Foo)` for ORM models in tests.
+
+---
+
+## Design Decisions Log
+
+| Date | Decision | Rationale |
+|------|----------|-----------|
+| 2026-03-23 | SHA-256 for API key hashing (not bcrypt) | Deterministic + indexed lookup. bcrypt is for passwords (user-chosen secrets); random 32-byte tokens don't need a cost factor |
+| 2026-03-23 | `id=uuid.uuid4()` set explicitly in handlers | Avoids DB round-trip dependency in tests; `server_default` only fires on real DB inserts |
+| 2026-03-23 | Audit log uses `db.add()` without commit | Ensures audit entry and primary record commit atomically — caller commits both |
+| 2026-03-23 | `filter_status: Optional[RequestStatus] = Query(None, alias="status")` | `status` as a parameter name shadows `fastapi.status` module; aliased param keeps URL clean |
+| 2026-03-24 | `RateLimiter` as module-level singleton in `rate_limiter.py` | Simple in-process sliding window; good enough for MVP; `reset()` method enables clean test isolation |
+| 2026-03-24 | Expiration via `asyncio.create_task` in FastAPI lifespan | No external scheduler needed for MVP; task cancelled cleanly on shutdown |
+| 2026-03-24 | Rule templates are static data in `rules.py` | No DB needed for read-only presets; templates are returned as-is, user applies them via separate create_rule calls |
+
+---
+
+## Current TODOs
+
+### Completed ✅
+- FastAPI scaffold + Supabase DB migrations
+- `api/agents.py` — full CRUD + audit logging
+- `api/authorize.py` — full auth flow + audit + notifications + rate limiting
+- `services/rule_engine.py` — 8-step evaluation
+- `services/token_service.py` — JWT approval tokens
+- `services/audit.py` — atomic audit logging
+- `services/notification.py` — Resend email via BackgroundTasks
+- `services/rate_limiter.py` — sliding window, 10 req/60s per agent
+- `services/expiration.py` — background loop, runs every 30s
+- `api/rules.py` — full CRUD + rule templates endpoint
+- `api/requests.py` — list, approve, deny with audit
+- `api/dashboard.py` — aggregate stats + activity feed
+- `sdk/python/agentgate/` — AgentGate client with authorize/authorize_async/check
+- 71 backend tests + 7 SDK tests passing
+
+### Up Next (Priority Order)
+1. **React dashboard** — Phase 1 blocker. Needs: Login (Supabase Auth), agent registration, rules UI using templates, pending request cards (approve/deny), transaction history. Start with `dashboard/` dir.
+2. **Supabase Realtime** — push pending requests to dashboard via websocket subscription on `authorization_requests` where `status=pending`.
+3. **Deploy** — Railway or Fly.io. Wire `DATABASE_URL` + `SUPABASE_*` + `RESEND_API_KEY` env vars. Add `Dockerfile` to `backend/`.
+4. **JavaScript SDK** — Phase 2. Mirror the Python SDK at `sdk/javascript/`.
+5. **Spending analytics charts** — dashboard Phase 2. Daily/weekly/monthly spend via `GET /v1/dashboard/stats` already exists.
+6. **LangChain / CrewAI integrations** — thin wrappers around the Python SDK.
+
+### Next Session Should Start With
+Read this file, then: the React dashboard (`dashboard/` directory doesn't exist yet — needs scaffolding). Use `/project-kickoff` style approach within the existing repo structure.
+
+---
+
+## Common Mistakes / Active Rules
+
+- **Test helpers for ORM models:** Use `Model(id=uuid.uuid4(), ...)` constructors, not `__new__`. Use `SimpleNamespace` for pure unit tests.
+- **`mock_db.execute` side_effect for multi-call tests:** When a handler calls `db.execute` more than once (e.g., list_rules calls it twice — once for agent, once for rules), use `side_effect=[result1, result2]`.
+- **Rate limiter state leaks between tests:** The `test_rate_limiter.py` `autouse` fixture calls `authorize_limiter.reset()` before/after each test. Any new test that hits POST /v1/authorize should do the same.
+- **`AgentGate_CLAUDE.md` is the project CLAUDE.md** — there is no separate `CLAUDE.md` at the repo root. Pass this file path when starting a new session.
