@@ -2,6 +2,7 @@ import hashlib
 import uuid
 from typing import Annotated
 
+import httpx
 from fastapi import Depends, HTTPException, Request, status
 from jose import JWTError, jwt
 from sqlalchemy import select
@@ -10,6 +11,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.database import get_db
 from app.models.database import Agent, User
+
+# Simple in-process JWKS cache — populated on first request, shared across calls.
+_jwks_cache: dict | None = None
+
+
+async def _get_jwks() -> dict:
+    global _jwks_cache
+    if _jwks_cache is not None:
+        return _jwks_cache
+    jwks_url = f"{settings.SUPABASE_URL}/auth/v1/.well-known/jwks.json"
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(jwks_url)
+        resp.raise_for_status()
+        _jwks_cache = resp.json()
+    return _jwks_cache
 
 
 def _hash_api_key(key: str) -> str:
@@ -63,16 +79,26 @@ async def require_user(
 ) -> User:
     """Authenticate a human user via their Supabase JWT.
 
-    Verifies the Bearer token against SUPABASE_JWT_SECRET, extracts the
-    Supabase auth UID (sub claim), and looks up the matching user record.
+    Fetches the JWKS from Supabase, selects the key matching the token's kid,
+    and verifies the ES256 signature. Extracts the Supabase auth UID (sub claim)
+    and looks up the matching user record.
     Used on all human-facing dashboard endpoints.
     """
     token = _extract_bearer(request)
     try:
+        header = jwt.get_unverified_header(token)
+        jwks = await _get_jwks()
+        kid = header.get("kid")
+        key_data = next(
+            (k for k in jwks.get("keys", []) if kid is None or k.get("kid") == kid),
+            None,
+        )
+        if key_data is None:
+            raise JWTError("No matching key found in JWKS")
         payload = jwt.decode(
             token,
-            settings.SUPABASE_JWT_SECRET,
-            algorithms=[settings.JWT_ALGORITHM],
+            key_data,
+            algorithms=["ES256"],
             options={"verify_aud": False},
         )
     except JWTError:
