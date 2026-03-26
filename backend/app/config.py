@@ -11,7 +11,6 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+asyncpg://postgres:password@localhost:5432/agentgate"
     SUPABASE_URL: str = ""
     SUPABASE_ANON_KEY: str = ""
-    SUPABASE_JWT_SECRET: str = "placeholder-secret"
     JWT_SECRET: str = "placeholder-secret"
     JWT_ALGORITHM: str = "HS256"
     APPROVAL_TOKEN_TTL_SECONDS: int = 3600
