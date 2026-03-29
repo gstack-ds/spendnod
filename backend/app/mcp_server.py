@@ -22,7 +22,10 @@ AGENTGATE_API_URL = os.getenv(
     "https://agent-gate-production.up.railway.app",
 ).rstrip("/")
 
-mcp = FastMCP("AgentGate")
+# streamable_http_path="/" so the internal Starlette route sits at "/".
+# When FastAPI mounts this sub-app at "/mcp" it strips the prefix, so the
+# MCP endpoint is reachable at /mcp (not /mcp/mcp).
+mcp = FastMCP("AgentGate", streamable_http_path="/")
 
 
 def _headers(api_key: str) -> dict[str, str]:
