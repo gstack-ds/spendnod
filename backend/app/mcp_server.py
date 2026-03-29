@@ -140,23 +140,26 @@ async def check_authorization_status(
         JSON with status field. If status="approved", an approval_token is
         also included.
     """
+    url = f"{AGENTGATE_API_URL}/v1/authorize/{request_id}"
     try:
         async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.get(
-                f"{AGENTGATE_API_URL}/v1/authorize/{request_id}",
-                headers=_headers(api_key),
-            )
+            resp = await client.get(url, headers=_headers(api_key))
         if resp.status_code == 200:
             return resp.json()
+        try:
+            detail = resp.json().get("detail", resp.text)
+        except Exception:
+            detail = resp.text
         return {
             "error": True,
             "status_code": resp.status_code,
-            "detail": resp.json().get("detail", resp.text),
+            "detail": detail,
+            "url_called": url,
         }
     except httpx.TimeoutException:
-        return {"error": True, "detail": "Request timed out. The AgentGate API did not respond in time."}
+        return {"error": True, "detail": "Request timed out.", "url_called": url}
     except Exception as exc:
-        return {"error": True, "detail": str(exc)}
+        return {"error": True, "detail": str(exc), "url_called": url}
 
 
 @mcp.tool()
