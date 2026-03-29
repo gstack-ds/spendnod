@@ -15,16 +15,22 @@ from app.api.rules import router as rules_router
 from app.mcp_server import mcp
 from app.services import expiration
 
+# Build the MCP sub-app now so session_manager is initialised before lifespan runs.
+_mcp_app = mcp.streamable_http_app()
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    task = asyncio.create_task(expiration.run_expiration_loop())
-    yield
-    task.cancel()
-    try:
-        await task
-    except asyncio.CancelledError:
-        pass
+    # mcp.session_manager.run() provides the anyio task group the MCP handler
+    # requires — without it every request returns 500 "Task group not initialized".
+    async with mcp.session_manager.run():
+        task = asyncio.create_task(expiration.run_expiration_loop())
+        yield
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 logger = logging.getLogger(__name__)
@@ -74,4 +80,4 @@ async def health() -> dict:
 
 
 # MCP server — Streamable HTTP transport, mounted at /mcp
-app.mount("/mcp", mcp.streamable_http_app())
+app.mount("/mcp", _mcp_app)
