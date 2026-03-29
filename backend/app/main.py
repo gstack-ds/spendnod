@@ -12,6 +12,7 @@ from app.api.authorize import router as authorize_router
 from app.api.dashboard import router as dashboard_router
 from app.api.requests import router as requests_router
 from app.api.rules import router as rules_router
+from app.mcp_server import mcp
 from app.services import expiration
 
 
@@ -70,3 +71,7 @@ app.include_router(dashboard_router, prefix="/v1", tags=["dashboard"])
 @app.get("/health", tags=["meta"])
 async def health() -> dict:
     return {"status": "ok", "version": "0.1.0"}
+
+
+# MCP server — Streamable HTTP transport, mounted at /mcp
+app.mount("/mcp", mcp.streamable_http_app())
