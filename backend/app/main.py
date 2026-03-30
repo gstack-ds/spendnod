@@ -24,12 +24,23 @@ _mcp_app = mcp.streamable_http_app()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Log config so Railway deployments can be verified at startup
-    anon_preview = (settings.SUPABASE_ANON_KEY[:10] + "...") if settings.SUPABASE_ANON_KEY else "(not set)"
+    # Use os.getenv() directly to bypass pydantic-settings and show exactly
+    # what Railway injected — disambiguates "var not set" from "pydantic loaded
+    # an empty .env value".
+    _raw_url = os.getenv("SUPABASE_URL", "")
+    _raw_key = os.getenv("SUPABASE_ANON_KEY", "")
+    _raw_api = os.getenv("API_URL", "")
+    anon_preview = (_raw_key[:10] + "...") if _raw_key else "(not set)"
     logger.info(
-        "AgentGate startup — SUPABASE_URL=%s SUPABASE_ANON_KEY=%s API_URL=%s",
-        settings.SUPABASE_URL or "(not set)",
+        "AgentGate startup (raw env) — SUPABASE_URL=%s SUPABASE_ANON_KEY=%s API_URL=%s",
+        _raw_url or "(not set)",
         anon_preview,
+        _raw_api or "(not set — will use pydantic default)",
+    )
+    logger.info(
+        "AgentGate startup (pydantic) — SUPABASE_URL=%s SUPABASE_ANON_KEY=%s API_URL=%s",
+        settings.SUPABASE_URL or "(not set)",
+        (settings.SUPABASE_ANON_KEY[:10] + "...") if settings.SUPABASE_ANON_KEY else "(not set)",
         settings.API_URL,
     )
     # mcp.session_manager.run() provides the anyio task group the MCP handler
