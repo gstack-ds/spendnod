@@ -71,11 +71,11 @@ pytest          # 104 tests, all must pass before any commit
 
 ---
 
-**Date:** 2026-03-30
-**What happened:** Even with `stateless_http=True` and a new `_RequestLogger` outermost ASGI middleware, Railway HTTP logs still show 404 but zero `REQUEST` log lines appear in application logs.
-**Root cause:** Not yet confirmed. The absence of ANY `_RequestLogger` output means requests are NOT reaching the FastAPI/Uvicorn process at all. The 404 is being generated upstream — either Railway's own proxy layer or the MCP client is hitting a different URL/path.
-**Fix:** Pending. Next session: run `curl -v -X POST https://agent-gate-production.up.railway.app/mcp -H "Authorization: Bearer test-token" -H "Content-Type: application/json" -d '...'` and check whether a `REQUEST POST /mcp` line appears in Railway logs.
-**Rule:** If app-level middleware logs nothing but the platform shows 404, the problem is in the infrastructure layer (proxy, DNS, port routing) — not the application code. Don't add more app-level debugging; investigate the platform.
+**Date:** 2026-03-30/31
+**What happened:** Even with `stateless_http=True`, `POST /mcp` returned `{"detail":"Not Found"}` (FastAPI's 404). The `_RequestLogger` middleware logged nothing despite requests clearly reaching FastAPI.
+**Root cause:** Starlette 1.0.0 changed `Mount` path regex from `^/mcp(?P<path>.*)$` to `^/mcp/(?P<path>.*)$` (trailing slash now required). `app.mount("/mcp", ...)` silently stopped matching bare `POST /mcp`. The `_RequestLogger` not logging was a red herring — uvicorn on Railway doesn't configure application loggers (root logger defaults to WARNING), so INFO-level logs are suppressed.
+**Fix:** Replaced `app.mount("/mcp", ...)` with two explicit `app.add_api_route` calls at `/mcp` and `/mcp/`. Each route uses an async ASGI proxy (`_mcp_proxy`) that rewrites `scope["path"] = "/"` before forwarding to `MCPBearerMiddleware → FastMCP`. Uses `asyncio.Queue + StreamingResponse` to handle both streaming (SSE) and buffered (JSON) responses.
+**Rule:** `app.mount("/path", sub_app)` in Starlette 1.0+ requires a trailing slash on the path (i.e., mount at `/path/`, not `/path`). For exact-path matching use `app.add_api_route` instead of `app.mount`.
 
 ---
 
@@ -95,7 +95,8 @@ pytest          # 104 tests, all must pass before any commit
 | 2026-03-29 | Login proof JWT (5-min TTL) carries OAuth params between login and consent steps | Stateless — no server-side session table; signed with JWT_SECRET so it can't be forged |
 | 2026-03-29 | MCP tools no longer take `api_key` parameter | Bearer token injected by `MCPBearerMiddleware` into ContextVar; tools read it without needing it in the tool signature |
 | 2026-03-30 | `stateless_http=True` on FastMCP constructor | Railway restarts wipe in-memory session state; stateful mode causes stale-session 404s on every redeploy |
-| 2026-03-30 | `_RequestLogger` pure ASGI middleware (outermost, added via `add_middleware`) | Logs method + path + key headers before CORS or routing; safe for SSE streaming unlike `BaseHTTPMiddleware` |
+| 2026-03-30 | `_RequestLogger` pure ASGI middleware (added via `add_middleware`) | Logs method + path + key headers before routing; safe for SSE streaming unlike `BaseHTTPMiddleware` |
+| 2026-03-31 | Explicit `add_api_route("/mcp")` instead of `app.mount("/mcp")` | Starlette 1.0 Mount regex requires trailing slash; explicit routes match bare `/mcp` |
 
 ---
 
@@ -105,7 +106,7 @@ pytest          # 104 tests, all must pass before any commit
 - [ ] Run `supabase/migrations/003_oauth_tables.sql` in Supabase SQL editor (adds `oauth_clients`, `oauth_auth_codes`, `oauth_tokens`)
 - [ ] Set `API_URL` env var on Railway to the production URL (defaults correctly but explicit is safer)
 - [ ] Verify usage bar shows on live dashboard after deploy
-- [ ] **NEXT SESSION START HERE — MCP 404 not resolved.** Run `curl -v -X POST https://agent-gate-production.up.railway.app/mcp -H "Authorization: Bearer test-token" -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"initialize","id":1,"params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1.0"}}}'` and check Railway logs for `REQUEST POST /mcp`. If it appears: code is fine, client is the problem. If it doesn't appear: Railway proxy/port config is the problem.
+- [ ] **Verify on Railway** — after deploy, run `curl -v -X POST https://agent-gate-production.up.railway.app/mcp -H "Authorization: Bearer test-token" -H "Accept: application/json, text/event-stream" -H "Content-Type: application/json" -d '{"jsonrpc":"2.0","method":"initialize","id":1,...}'` and confirm 200 + valid MCP response (not 404).
 - [ ] Remove debug middleware (`_RequestLogger` in `main.py`) once `/mcp` is confirmed working
 - [ ] Remove startup route-table debug loop in `lifespan()` once `/mcp` is confirmed working
 - [ ] Verify MCP OAuth flow end-to-end: connect Claude Desktop with just the URL, confirm browser login opens
