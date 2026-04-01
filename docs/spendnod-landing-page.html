@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SpendNod — Human Authorization for AI Agent Transactions</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+:root {
+  --bg: #0B0F1A;
+  --bg-card: #111827;
+  --bg-card-hover: #1a2332;
+  --bg-surface: #0f1629;
+  --accent: #4F46E5;
+  --accent-light: #6366F1;
+  --accent-glow: rgba(79, 70, 229, 0.15);
+  --emerald: #10B981;
+  --emerald-dim: rgba(16, 185, 129, 0.12);
+  --amber: #F59E0B;
+  --amber-dim: rgba(245, 158, 11, 0.12);
+  --rose: #F43F5E;
+  --rose-dim: rgba(244, 63, 94, 0.12);
+  --text: #E2E8F0;
+  --text-dim: #94A3B8;
+  --text-muted: #64748B;
+  --border: #1E293B;
+  --white: #F8FAFC;
+}
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'IBM Plex Sans', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+h1, h2, h3, h4 { font-family: 'DM Sans', sans-serif; font-weight: 600; color: var(--white); }
+code, .mono { font-family: 'IBM Plex Mono', monospace; }
+a { color: var(--accent-light); text-decoration: none; }
+
+nav {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(11, 15, 26, 0.85);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+}
+.nav-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; justify-content: space-between; align-items: center;
+  height: 64px;
+}
+.nav-logo {
+  display: flex; align-items: center; gap: 10px;
+  font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 18px; color: var(--white);
+}
+.nav-logo svg { width: 28px; height: 28px; }
+.nav-links { display: flex; gap: 32px; align-items: center; }
+.nav-links a { color: var(--text-dim); font-size: 14px; font-weight: 500; transition: color 0.2s; }
+.nav-links a:hover { color: var(--white); }
+.nav-cta {
+  background: var(--accent); color: white; padding: 8px 20px;
+  border-radius: 8px; font-size: 14px; font-weight: 600; transition: all 0.2s;
+  border: none; cursor: pointer;
+}
+.nav-cta:hover { background: var(--accent-light); transform: translateY(-1px); }
+
+.hero {
+  padding: 160px 24px 100px;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.hero::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 800px; height: 800px;
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: var(--accent-glow); border: 1px solid rgba(79, 70, 229, 0.3);
+  border-radius: 24px; padding: 6px 16px; font-size: 13px; font-weight: 500;
+  color: var(--accent-light); margin-bottom: 24px;
+}
+.hero-badge .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--emerald); }
+.hero h1 {
+  font-size: clamp(36px, 6vw, 64px); line-height: 1.1;
+  letter-spacing: -0.03em; margin-bottom: 20px;
+  max-width: 800px; margin-left: auto; margin-right: auto;
+}
+.hero h1 .gradient {
+  background: linear-gradient(135deg, var(--accent-light), var(--emerald));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.hero p {
+  font-size: 18px; color: var(--text-dim); max-width: 580px;
+  margin: 0 auto 40px; line-height: 1.7;
+}
+.hero-buttons { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.btn-primary {
+  background: var(--accent); color: white; padding: 14px 32px;
+  border-radius: 10px; font-size: 16px; font-weight: 600; border: none;
+  cursor: pointer; transition: all 0.2s; font-family: 'DM Sans', sans-serif;
+}
+.btn-primary:hover { background: var(--accent-light); transform: translateY(-2px); box-shadow: 0 8px 30px rgba(79,70,229,0.3); }
+.btn-secondary {
+  background: transparent; color: var(--text); padding: 14px 32px;
+  border-radius: 10px; font-size: 16px; font-weight: 600;
+  border: 1px solid var(--border); cursor: pointer; transition: all 0.2s;
+  font-family: 'DM Sans', sans-serif;
+}
+.btn-secondary:hover { border-color: var(--text-muted); background: var(--bg-card); }
+
+/* TABBED CODE PREVIEW */
+.code-preview {
+  max-width: 660px; margin: 60px auto 0;
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  text-align: left;
+}
+.code-tabs {
+  display: flex; border-bottom: 1px solid var(--border);
+}
+.code-tab {
+  padding: 10px 20px; font-size: 13px; font-weight: 600;
+  font-family: 'DM Sans', sans-serif;
+  color: var(--text-muted); background: none; border: none;
+  cursor: pointer; transition: all 0.2s;
+  border-bottom: 2px solid transparent;
+}
+.code-tab.active {
+  color: var(--accent-light);
+  border-bottom-color: var(--accent-light);
+  background: rgba(79, 70, 229, 0.05);
+}
+.code-tab:hover:not(.active) { color: var(--text-dim); }
+.code-tab .tab-badge {
+  display: inline-block; background: var(--emerald-dim); color: var(--emerald);
+  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 4px;
+  margin-left: 6px; vertical-align: middle;
+}
+.code-panel { display: none; }
+.code-panel.active { display: block; }
+.code-body {
+  padding: 20px; font-family: 'IBM Plex Mono', monospace;
+  font-size: 14px; line-height: 1.8; overflow-x: auto;
+}
+.code-keyword { color: #C084FC; }
+.code-string { color: #34D399; }
+.code-comment { color: #4B5563; }
+.code-func { color: #60A5FA; }
+.code-var { color: #F9A8D4; }
+.code-key { color: #93C5FD; }
+
+/* WORKS WITH */
+.works-with {
+  padding: 48px 24px;
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+.works-with p { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; text-transform: uppercase; letter-spacing: 0.08em; font-weight: 500; }
+.platform-list { display: flex; justify-content: center; gap: 36px; flex-wrap: wrap; align-items: center; }
+.platform-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 15px; color: var(--text-dim); font-weight: 500;
+}
+.platform-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--emerald); }
+
+section { padding: 100px 24px; }
+.section-inner { max-width: 1100px; margin: 0 auto; }
+.section-label {
+  font-size: 13px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--accent-light); margin-bottom: 12px;
+}
+.section-title { font-size: 36px; margin-bottom: 16px; letter-spacing: -0.02em; }
+.section-desc { font-size: 17px; color: var(--text-dim); max-width: 600px; margin-bottom: 48px; }
+
+.problem-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+.problem-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 28px 24px; transition: all 0.2s;
+}
+.problem-card:hover { border-color: var(--accent); transform: translateY(-2px); }
+.problem-icon {
+  width: 44px; height: 44px; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; margin-bottom: 16px;
+}
+.problem-card h3 { font-size: 17px; margin-bottom: 8px; font-weight: 600; }
+.problem-card p { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+
+.step {
+  display: grid; grid-template-columns: 60px 1fr;
+  gap: 24px; padding: 32px 0;
+  border-bottom: 1px solid var(--border);
+}
+.step:last-child { border-bottom: none; }
+.step-number {
+  width: 48px; height: 48px; border-radius: 12px;
+  background: var(--accent-glow); border: 1px solid rgba(79,70,229,0.3);
+  display: flex; align-items: center; justify-content: center;
+  font-family: 'DM Sans', sans-serif; font-weight: 700; font-size: 18px;
+  color: var(--accent-light);
+}
+.step h3 { font-size: 18px; margin-bottom: 6px; }
+.step p { font-size: 15px; color: var(--text-dim); }
+.badge-inline {
+  display: inline-block; padding: 3px 10px; border-radius: 6px;
+  font-size: 12px; font-weight: 600; margin-top: 8px;
+}
+.badge-approved { background: var(--emerald-dim); color: var(--emerald); }
+.badge-pending { background: var(--amber-dim); color: var(--amber); }
+.badge-denied { background: var(--rose-dim); color: var(--rose); }
+
+.features-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.feature-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 12px; padding: 28px 24px; transition: all 0.2s;
+}
+.feature-card:hover { border-color: var(--text-muted); }
+.feature-card h3 { font-size: 16px; margin-bottom: 8px; }
+.feature-card p { font-size: 14px; color: var(--text-dim); line-height: 1.6; }
+
+.compliance-banner {
+  background: linear-gradient(135deg, rgba(79,70,229,0.1), rgba(16,185,129,0.1));
+  border: 1px solid rgba(79,70,229,0.2);
+  border-radius: 16px; padding: 48px 40px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+  align-items: center;
+}
+.compliance-banner h3 { font-size: 28px; margin-bottom: 12px; letter-spacing: -0.02em; }
+.compliance-banner p { font-size: 15px; color: var(--text-dim); line-height: 1.7; }
+.compliance-date {
+  text-align: center; padding: 32px;
+  background: rgba(0,0,0,0.3); border-radius: 12px;
+}
+.compliance-date .label { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
+.compliance-date .date { font-size: 42px; font-family: 'DM Sans', sans-serif; font-weight: 700; color: var(--accent-light); }
+.compliance-date .sub { font-size: 14px; color: var(--amber); margin-top: 8px; }
+
+.pricing-header { text-align: center; margin-bottom: 48px; }
+.pricing-header .launch-tag {
+  display: inline-block; background: var(--amber-dim); border: 1px solid rgba(245,158,11,0.3);
+  color: var(--amber); font-size: 13px; font-weight: 600;
+  padding: 6px 16px; border-radius: 24px; margin-bottom: 16px;
+}
+.pricing-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.tier {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: 14px; padding: 28px 24px;
+  display: flex; flex-direction: column; transition: all 0.2s;
+}
+.tier:hover { border-color: var(--text-muted); transform: translateY(-2px); }
+.tier.featured { border: 2px solid var(--accent); }
+.tier .pop {
+  font-size: 11px; background: var(--accent-glow); color: var(--accent-light);
+  padding: 4px 12px; border-radius: 20px; font-weight: 600;
+  display: inline-block; width: fit-content; margin-bottom: 12px;
+}
+.tier-name { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+.tier-desc { font-size: 13px; color: var(--text-dim); margin-bottom: 20px; min-height: 40px; line-height: 1.5; }
+.tier .price-old { font-size: 14px; color: var(--text-muted); text-decoration: line-through; }
+.tier .price { font-size: 36px; font-weight: 700; color: var(--white); }
+.tier .price-period { font-size: 14px; color: var(--text-muted); }
+.tier .deal {
+  display: inline-block; background: var(--emerald-dim); color: var(--emerald);
+  font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 12px;
+  margin-left: 8px;
+}
+.tier-features { list-style: none; padding: 0; margin: 20px 0; flex: 1; }
+.tier-features li {
+  font-size: 13px; color: var(--text-dim); padding: 6px 0;
+  display: flex; gap: 10px; align-items: flex-start;
+}
+.tier-features .check { color: var(--emerald); flex-shrink: 0; }
+.tier-features .strike { text-decoration: line-through; color: var(--text-muted); }
+.tier-features .upgrade { color: var(--emerald); font-weight: 600; }
+.tier-features .highlight { color: var(--white); font-weight: 500; }
+.tier-btn {
+  width: 100%; padding: 12px; border-radius: 8px;
+  font-size: 14px; font-weight: 600; cursor: pointer;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text); transition: all 0.2s;
+  font-family: 'DM Sans', sans-serif;
+}
+.tier-btn:hover { background: var(--bg-card-hover); border-color: var(--text-muted); }
+.tier-btn.primary { background: var(--accent); color: white; border-color: var(--accent); }
+.tier-btn.primary:hover { background: var(--accent-light); }
+.pricing-note { text-align: center; margin-top: 20px; font-size: 13px; color: var(--text-muted); }
+
+.cta-section {
+  text-align: center; padding: 100px 24px;
+  position: relative;
+}
+.cta-section::before {
+  content: '';
+  position: absolute; bottom: 0; left: 50%; transform: translateX(-50%);
+  width: 600px; height: 400px;
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+.cta-section h2 { font-size: 36px; margin-bottom: 16px; letter-spacing: -0.02em; }
+.cta-section p { font-size: 17px; color: var(--text-dim); margin-bottom: 32px; max-width: 500px; margin-left: auto; margin-right: auto; }
+
+footer {
+  border-top: 1px solid var(--border);
+  padding: 40px 24px;
+}
+.footer-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; justify-content: space-between; align-items: center;
+  flex-wrap: wrap; gap: 16px;
+}
+.footer-left { font-size: 13px; color: var(--text-muted); }
+.footer-links { display: flex; gap: 24px; }
+.footer-links a { font-size: 13px; color: var(--text-muted); transition: color 0.2s; }
+.footer-links a:hover { color: var(--text); }
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp 0.6s ease-out both; }
+.fade-up-1 { animation-delay: 0.1s; }
+.fade-up-2 { animation-delay: 0.2s; }
+.fade-up-3 { animation-delay: 0.3s; }
+.fade-up-4 { animation-delay: 0.4s; }
+
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .problem-grid { grid-template-columns: 1fr; }
+  .features-grid { grid-template-columns: 1fr; }
+  .pricing-grid { grid-template-columns: 1fr; }
+  .compliance-banner { grid-template-columns: 1fr; text-align: center; }
+  .hero h1 { font-size: 32px; }
+  .hero p { font-size: 16px; }
+  .code-body { font-size: 12px; }
+  .step { grid-template-columns: 48px 1fr; gap: 16px; }
+  .platform-list { gap: 20px; }
+}
+@media (max-width: 1024px) and (min-width: 769px) {
+  .pricing-grid { grid-template-columns: 1fr 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-logo">
+      <svg viewBox="0 0 28 28" fill="none"><path d="M14 2L4 8v12l10 6 10-6V8L14 2z" stroke="#6366F1" stroke-width="2" fill="rgba(79,70,229,0.1)"/><path d="M14 10v8M10 14h8" stroke="#6366F1" stroke-width="2" stroke-linecap="round"/></svg>
+      SpendNod
+    </div>
+    <div class="nav-links">
+      <a href="#how-it-works">How it works</a>
+      <a href="#features">Features</a>
+      <a href="#pricing">Pricing</a>
+      <a href="https://agent-gate-production.up.railway.app/docs" target="_blank">API docs</a>
+      <button class="nav-cta" onclick="window.open('https://agentgate-two.vercel.app','_blank')">Get started free</button>
+    </div>
+  </div>
+</nav>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-badge fade-up"><span class="dot"></span> MCP integration live — works with Claude, ChatGPT, Cursor</div>
+  <h1 class="fade-up fade-up-1">Add one URL.<br><span class="gradient">Your agent asks permission.</span></h1>
+  <p class="fade-up fade-up-2">SpendNod is the authorization layer for AI agent transactions. Your agent connects via MCP, checks in before every purchase, and waits for your approval on anything above your threshold. No code required.</p>
+  <div class="hero-buttons fade-up fade-up-3">
+    <button class="btn-primary" onclick="window.open('https://agentgate-two.vercel.app','_blank')">Start free — 200 requests/month</button>
+    <button class="btn-secondary" onclick="window.open('https://agent-gate-production.up.railway.app/docs','_blank')">View API docs</button>
+  </div>
+
+  <!-- TABBED CODE PREVIEW -->
+  <div class="code-preview fade-up fade-up-4">
+    <div class="code-tabs">
+      <button class="code-tab active" onclick="switchTab('mcp')">MCP Config <span class="tab-badge">1 line</span></button>
+      <button class="code-tab" onclick="switchTab('sdk')">Python SDK</button>
+      <button class="code-tab" onclick="switchTab('api')">REST API</button>
+    </div>
+
+    <!-- MCP TAB -->
+    <div class="code-panel active" id="panel-mcp">
+      <div class="code-body">
+        <span class="code-comment">// Claude Desktop, Cursor, VS Code, ChatGPT, Windsurf</span><br>
+        <span class="code-comment">// Add to your MCP config — that's it.</span><br>
+        <br>
+        {<br>
+        &nbsp;&nbsp;<span class="code-key">"mcpServers"</span>: {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"spendnod"</span>: {<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="code-key">"url"</span>: <span class="code-string">"https://your-spendnod-url/mcp"</span><br>
+        &nbsp;&nbsp;&nbsp;&nbsp;}<br>
+        &nbsp;&nbsp;}<br>
+        }<br>
+        <br>
+        <span class="code-comment">// Your agent now calls authorize_transaction</span><br>
+        <span class="code-comment">// before every purchase. Automatically.</span>
+      </div>
+    </div>
+
+    <!-- SDK TAB -->
+    <div class="code-panel" id="panel-sdk">
+      <div class="code-body">
+        <span class="code-keyword">from</span> <span class="code-var">spendnod</span> <span class="code-keyword">import</span> SpendNod<br>
+        <br>
+        gate = SpendNod(<span class="code-func">api_key</span>=<span class="code-string">"sk-ag-..."</span>)<br>
+        approval = gate.<span class="code-func">authorize</span>(<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-func">action</span>=<span class="code-string">"purchase"</span>,<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-func">amount</span>=<span class="code-string">749.99</span>,<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-func">vendor</span>=<span class="code-string">"Best Buy"</span>,<br>
+        &nbsp;&nbsp;&nbsp;&nbsp;<span class="code-func">description</span>=<span class="code-string">"4K Monitor"</span><br>
+        )<br>
+        <br>
+        <span class="code-comment"># Returns: auto_approved, pending, or denied</span>
+      </div>
+    </div>
+
+    <!-- API TAB -->
+    <div class="code-panel" id="panel-api">
+      <div class="code-body">
+        <span class="code-func">POST</span> /v1/authorize<br>
+        <span class="code-key">Authorization</span>: Bearer sk-ag-...<br>
+        <br>
+        {<br>
+        &nbsp;&nbsp;<span class="code-key">"action"</span>: <span class="code-string">"purchase"</span>,<br>
+        &nbsp;&nbsp;<span class="code-key">"amount"</span>: <span class="code-string">749.99</span>,<br>
+        &nbsp;&nbsp;<span class="code-key">"vendor"</span>: <span class="code-string">"Best Buy"</span>,<br>
+        &nbsp;&nbsp;<span class="code-key">"description"</span>: <span class="code-string">"4K Monitor"</span><br>
+        }<br>
+        <br>
+        <span class="code-comment">// Works with any language, any framework</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- WORKS WITH -->
+<div class="works-with">
+  <p>Works with every MCP-compatible platform</p>
+  <div class="platform-list">
+    <div class="platform-item"><span class="platform-dot"></span> Claude</div>
+    <div class="platform-item"><span class="platform-dot"></span> ChatGPT</div>
+    <div class="platform-item"><span class="platform-dot"></span> Cursor</div>
+    <div class="platform-item"><span class="platform-dot"></span> VS Code</div>
+    <div class="platform-item"><span class="platform-dot"></span> Windsurf</div>
+    <div class="platform-item"><span class="platform-dot"></span> LangChain</div>
+    <div class="platform-item"><span class="platform-dot"></span> CrewAI</div>
+    <div class="platform-item"><span class="platform-dot"></span> Any MCP client</div>
+  </div>
+</div>
+
+<!-- PROBLEM -->
+<section>
+  <div class="section-inner">
+    <div class="section-label">The problem</div>
+    <h2 class="section-title">AI agents are spending money without guardrails</h2>
+    <p class="section-desc">Agents can book flights, make purchases, and transfer funds. But most operate with zero human oversight between the decision and the transaction.</p>
+    <div class="problem-grid">
+      <div class="problem-card">
+        <div class="problem-icon" style="background: var(--rose-dim); color: var(--rose);">&#x26A0;</div>
+        <h3>No spending controls</h3>
+        <p>AI agents can trigger unlimited transactions with no caps, no category restrictions, and no velocity limits.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon" style="background: var(--amber-dim); color: var(--amber);">&#x1F50D;</div>
+        <h3>No audit trail</h3>
+        <p>When something goes wrong, there's no record of what the agent did, why it did it, or who authorized it.</p>
+      </div>
+      <div class="problem-card">
+        <div class="problem-icon" style="background: var(--accent-glow); color: var(--accent-light);">&#x2696;</div>
+        <h3>Compliance gap</h3>
+        <p>The EU AI Act requires auditable proof that AI systems operated within authorized parameters. Most agent frameworks have no answer for this.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works" style="background: var(--bg-surface);">
+  <div class="section-inner">
+    <div class="section-label">How it works</div>
+    <h2 class="section-title">One URL. One tap. Full control.</h2>
+    <p class="section-desc">Add SpendNod to your agent's MCP config. Set your rules. The engine decides in milliseconds.</p>
+    <div>
+      <div class="step">
+        <div class="step-number">1</div>
+        <div>
+          <h3>Connect your agent</h3>
+          <p>Add the SpendNod MCP URL to your agent's config file. Works with Claude, ChatGPT, Cursor, and any MCP-compatible platform. No SDK install, no code changes.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">2</div>
+        <div>
+          <h3>Set your rules</h3>
+          <p>Configure spending thresholds, vendor blocklists, daily caps, and category restrictions from the dashboard. Start with a template — Conservative, Moderate, or Permissive — or build custom rules.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">3</div>
+        <div>
+          <h3>Agent checks in automatically</h3>
+          <p>Before every transaction, your agent calls SpendNod. The rule engine evaluates in milliseconds and returns one of three outcomes:</p>
+          <p>
+            <span class="badge-inline badge-approved">Auto-approved</span> Under your threshold — instant, no human needed.<br>
+            <span class="badge-inline badge-pending">Pending review</span> Above your threshold — you approve with one tap.<br>
+            <span class="badge-inline badge-denied">Denied</span> Blocked vendor or limit hit — instant rejection.
+          </p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-number">4</div>
+        <div>
+          <h3>Full audit trail</h3>
+          <p>Every decision is logged — who approved it, which rule triggered, timestamp, full context. Exportable and compliance-ready.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="section-inner">
+    <div class="section-label">Features</div>
+    <h2 class="section-title">Everything you need to control your agents</h2>
+    <p class="section-desc">Built for developers who want zero-friction integration and humans who want real control.</p>
+    <div class="features-grid">
+      <div class="feature-card">
+        <h3>MCP native</h3>
+        <p>Add one URL to your agent's config. SpendNod becomes a native tool — your agent automatically calls authorize before every transaction. No code required.</p>
+      </div>
+      <div class="feature-card">
+        <h3>8-step rule engine</h3>
+        <p>Per-transaction limits, daily/monthly caps, vendor blocklists, category restrictions, velocity limits. Start with preset templates or build custom rules.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Mobile approval dashboard</h3>
+        <p>See pending requests with full context — agent name, vendor, amount, description, countdown timer. Approve or deny from your phone, tablet, or desktop.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Conservative defaults</h3>
+        <p>New agents require human approval for everything. You loosen controls as trust builds. Safety first, always.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Framework agnostic</h3>
+        <p>Works with Claude, ChatGPT, LangChain, CrewAI, AutoGen, or custom agents. Works with any payment rail. SpendNod sits above all of them.</p>
+      </div>
+      <div class="feature-card">
+        <h3>Complete audit trail</h3>
+        <p>Every request, every decision, every rule change — timestamped and logged. Know exactly what happened and who authorized it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- COMPLIANCE -->
+<section style="background: var(--bg-surface);">
+  <div class="section-inner">
+    <div class="compliance-banner">
+      <div>
+        <h3>EU AI Act enforcement begins August 2, 2026</h3>
+        <p>The regulation requires auditable proof that AI systems operated within authorized parameters. Fines up to 7% of global revenue for non-compliance. SpendNod provides the audit trail and human oversight controls that enterprises need.</p>
+      </div>
+      <div class="compliance-date">
+        <div class="label">Enforcement date</div>
+        <div class="date">Aug 2</div>
+        <div class="sub">~126 days away</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section id="pricing">
+  <div class="section-inner">
+    <div class="pricing-header">
+      <div class="launch-tag">Early access — limited time</div>
+      <h2 class="section-title">Launch pricing</h2>
+      <p class="section-desc" style="margin-left: auto; margin-right: auto;">Lock in doubled limits forever. Prices go up after the first 500 signups.</p>
+    </div>
+
+    <div class="pricing-grid">
+      <div class="tier">
+        <div class="tier-name">Free</div>
+        <div class="tier-desc">Try it out. See your agents ask permission.</div>
+        <div><span class="price">$0</span></div>
+        <div class="price-period">forever</div>
+        <ul class="tier-features">
+          <li><span class="check">&#10003;</span><span><span class="strike">100 requests/mo</span> <span class="upgrade">200/mo</span></span></li>
+          <li><span class="check">&#10003;</span><span><span class="strike">1 agent</span> <span class="upgrade">2 agents</span></span></li>
+          <li><span class="check">&#10003;</span><span>All features included</span></li>
+        </ul>
+        <button class="tier-btn" onclick="window.open('https://agentgate-two.vercel.app','_blank')">Get started free</button>
+      </div>
+
+      <div class="tier">
+        <div class="tier-name">Starter</div>
+        <div class="tier-desc">For developers running agents in production.</div>
+        <div class="price-old">$39/mo</div>
+        <div><span class="price">$29</span><span class="price-period">/mo</span><span class="deal">25% off</span></div>
+        <ul class="tier-features">
+          <li><span class="check">&#10003;</span><span><span class="strike">2,000 requests/mo</span> <span class="upgrade">5,000/mo</span></span></li>
+          <li><span class="check">&#10003;</span><span><span class="strike">5 agents</span> <span class="upgrade">10 agents</span></span></li>
+          <li><span class="check">&#10003;</span><span>All features included</span></li>
+        </ul>
+        <button class="tier-btn">Coming soon</button>
+      </div>
+
+      <div class="tier featured">
+        <div class="pop">Most popular</div>
+        <div class="tier-name">Pro</div>
+        <div class="tier-desc">For teams that rely on agent automation daily.</div>
+        <div class="price-old">$129/mo</div>
+        <div><span class="price">$99</span><span class="price-period">/mo</span><span class="deal">23% off</span></div>
+        <ul class="tier-features">
+          <li><span class="check">&#10003;</span><span><span class="strike">25,000 requests/mo</span> <span class="upgrade">50,000/mo</span></span></li>
+          <li><span class="check">&#10003;</span><span><span class="strike">25 agents</span> <span class="upgrade">50 agents</span></span></li>
+          <li><span class="check">&#10003;</span><span>All features included</span></li>
+        </ul>
+        <button class="tier-btn primary">Coming soon</button>
+      </div>
+
+      <div class="tier">
+        <div class="tier-name">Business</div>
+        <div class="tier-desc">For enterprises that need full scale.</div>
+        <div class="price-old">$399/mo</div>
+        <div><span class="price">$299</span><span class="price-period">/mo</span><span class="deal">25% off</span></div>
+        <ul class="tier-features">
+          <li><span class="check">&#10003;</span><span class="highlight">Unlimited requests</span></li>
+          <li><span class="check">&#10003;</span><span class="highlight">Unlimited agents</span></li>
+          <li><span class="check">&#10003;</span><span>All features included</span></li>
+        </ul>
+        <button class="tier-btn">Contact us</button>
+      </div>
+    </div>
+    <p class="pricing-note">Launch pricing locks in for the lifetime of your account. Every plan includes MCP server, REST API, Python SDK, rule engine, dashboard, and audit logging. You only pay for scale.</p>
+  </div>
+</section>
+
+<!-- CTA -->
+<div class="cta-section">
+  <h2>Your agents are spending money.<br>Shouldn't you have a say?</h2>
+  <p>Add one URL. Set your rules. Keep your humans in the loop.</p>
+  <button class="btn-primary" onclick="window.open('https://agentgate-two.vercel.app','_blank')">Get started — it's free</button>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-left">&copy; 2026 Stack Industries LLC. All rights reserved.</div>
+    <div class="footer-links">
+      <a href="#">Terms of Service</a>
+      <a href="#">Privacy Policy</a>
+      <a href="https://agent-gate-production.up.railway.app/docs" target="_blank">API Docs</a>
+
+    </div>
+  </div>
+</footer>
+
+<script>
+function switchTab(tab) {
+  document.querySelectorAll('.code-tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.code-panel').forEach(p => p.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  document.getElementById('panel-' + tab).classList.add('active');
+}
+</script>
+
+</body>
+</html>

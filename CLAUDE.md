@@ -10,12 +10,13 @@ Authorization gateway for AI agents and financial transactions.
 ## TODOs
 
 ### Tonight / This Weekend
-- [ ] Paste confirmation email HTML into Supabase
+- [x] Paste confirmation email HTML into Supabase
 - [ ] Verify usage bar shows on live dashboard
-- [ ] Deploy landing page (HTML file ready, needs hosting)
+- [x] Deploy landing page
 - [x] Buy domain (spendnod.com)
 - [ ] Record demo video #1 (SDK flow — storyboard ready)
 - [ ] Record demo video #2 (MCP flow — 60 seconds)
+- [x] Enable RLS on all 8 Supabase tables (migration 004_rls_policies.sql — applied)
 
 ### Next Week
 - [ ] Stripe billing integration (upgrade button actually charges)
