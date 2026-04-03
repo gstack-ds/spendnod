@@ -9,6 +9,11 @@ Authorization gateway for AI agents and financial transactions.
 
 ## Completed
 
+- [x] Backend split into private repo `gstack-ds/spendnod-backend` (Railway reconnect needed for auto-deploy)
+- [x] Dashboard repo `gstack-ds/agent-gate` made public — Vercel deploys now work
+- [x] SpendNod shield logo + favicon added to dashboard sidebar, login page, landing page, enterprise page
+- [x] Google and GitHub OAuth added to login page (proxy.ts fixed to allow /auth/ routes, x-forwarded-host fix for Vercel, OAuth user auto-provisioning in backend)
+- [x] Landing page pricing cards updated: "Coming Soon" → "Sign Up Now"
 - [x] DNS fully configured: app.spendnod.com (Vercel dashboard), api.spendnod.com (Railway backend/MCP), spendnod.com (Vercel landing page), spendnod.com/enterprise (enterprise landing page)
 - [x] CORS updated with new domains
 - [x] Supabase redirect URLs updated to app.spendnod.com
@@ -32,7 +37,8 @@ Authorization gateway for AI agents and financial transactions.
 ### Pre-Launch Blockers
 - [ ] Test full Stripe checkout flow end-to-end (free → upgrade → verify → cancel → verify downgrade)
 - [ ] Login page redesign to match dark theme of landing site
-- [ ] Logo decision and replacement (current shield icon is placeholder)
+- [ ] Rotate credentials that were briefly exposed: DB password, JWT_SECRET, RESEND_API_KEY
+- [ ] Reconnect Railway to gstack-ds/spendnod-backend for auto-deploys (currently manual redeploy required)
 
 ### Launch Actions
 - [ ] Demo video #1 — SDK flow (storyboard ready)
