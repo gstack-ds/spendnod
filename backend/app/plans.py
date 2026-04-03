@@ -11,7 +11,7 @@ PLAN_LIMITS: dict[str, dict[str, Optional[int]]] = {
 
 PLAN_ORDER = ["free", "starter", "pro", "business"]
 
-UPGRADE_URL = "https://agentgate-two.vercel.app/billing"
+UPGRADE_URL = "https://app.spendnod.com/billing"
 
 
 def get_next_plan(plan: str) -> Optional[str]:

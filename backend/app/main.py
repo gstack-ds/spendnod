@@ -65,7 +65,7 @@ app = FastAPI(
 _origins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
-    "https://agentgate-two.vercel.app",
+    "https://app.spendnod.com",
 ]
 _extra = os.getenv("CORS_ORIGINS", "")
 if _extra:

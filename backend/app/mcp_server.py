@@ -27,7 +27,7 @@ from app.api.oauth_bearer import mcp_bearer_token
 
 AGENTGATE_API_URL = os.getenv(
     "AGENTGATE_API_URL",
-    "https://agent-gate-production.up.railway.app",
+    "https://api.spendnod.com",
 ).rstrip("/")
 
 # streamable_http_path="/" so the internal Starlette route sits at "/".
