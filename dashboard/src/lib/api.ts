@@ -165,6 +165,10 @@ export async function getRuleTemplates(
   return apiFetch<RuleTemplate[]>(`/v1/agents/${agentId}/rules/templates`);
 }
 
+export async function getGlobalRuleTemplates(): Promise<RuleTemplate[]> {
+  return apiFetch<RuleTemplate[]>("/v1/rules/templates");
+}
+
 // --- Requests ---
 
 export async function getRequests(status?: string): Promise<AuthRequest[]> {

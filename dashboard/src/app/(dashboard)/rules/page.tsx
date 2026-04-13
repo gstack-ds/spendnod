@@ -7,7 +7,7 @@ import {
   getAgentRules,
   createRule,
   deleteRule,
-  getRuleTemplates,
+  getGlobalRuleTemplates,
   RuleTemplate,
 } from "@/lib/api";
 import { RuleRow } from "@/components/rule-row";
@@ -47,34 +47,6 @@ const RULE_TYPES = [
   { value: "blocked_categories", label: "Blocked categories", hasList: true },
 ];
 
-const FALLBACK_TEMPLATES: RuleTemplate[] = [
-  {
-    name: "Conservative",
-    description: "Maximum protection — nothing auto-approves. Every request requires your review.",
-    rules: [
-      { rule_type: "require_approval_above", value: { amount: 0 } },
-      { rule_type: "max_per_day", value: { amount: 50 } },
-    ],
-  },
-  {
-    name: "Moderate",
-    description: "Approve small purchases automatically, flag large ones for review.",
-    rules: [
-      { rule_type: "auto_approve_below", value: { amount: 25 } },
-      { rule_type: "require_approval_above", value: { amount: 100 } },
-      { rule_type: "max_per_day", value: { amount: 200 } },
-    ],
-  },
-  {
-    name: "Permissive",
-    description: "Higher auto-approve threshold with a daily spending cap.",
-    rules: [
-      { rule_type: "auto_approve_below", value: { amount: 100 } },
-      { rule_type: "max_per_day", value: { amount: 500 } },
-    ],
-  },
-];
-
 const TEMPLATE_STYLES: Record<
   string,
   { border: string; bg: string; badge: string; badgeText: string; applyBtn: string }
@@ -100,12 +72,36 @@ const TEMPLATE_STYLES: Record<
     badgeText: "Permissive",
     applyBtn: "border-rose-300 hover:bg-rose-50 dark:hover:bg-rose-950/30 text-rose-700 dark:text-rose-300",
   },
+  shopping: {
+    border: "border-blue-200 dark:border-blue-800",
+    bg: "bg-blue-50 dark:bg-blue-950/30",
+    badge: "bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300",
+    badgeText: "Shopping",
+    applyBtn: "border-blue-300 hover:bg-blue-50 dark:hover:bg-blue-950/30 text-blue-700 dark:text-blue-300",
+  },
+  procurement: {
+    border: "border-violet-200 dark:border-violet-800",
+    bg: "bg-violet-50 dark:bg-violet-950/30",
+    badge: "bg-violet-100 dark:bg-violet-900/50 text-violet-700 dark:text-violet-300",
+    badgeText: "Procurement",
+    applyBtn: "border-violet-300 hover:bg-violet-50 dark:hover:bg-violet-950/30 text-violet-700 dark:text-violet-300",
+  },
+  adspending: {
+    border: "border-orange-200 dark:border-orange-800",
+    bg: "bg-orange-50 dark:bg-orange-950/30",
+    badge: "bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-300",
+    badgeText: "Ad Spending",
+    applyBtn: "border-orange-300 hover:bg-orange-50 dark:hover:bg-orange-950/30 text-orange-700 dark:text-orange-300",
+  },
 };
 
 function getTemplateStyle(name: string) {
-  const key = name.toLowerCase();
+  const key = name.toLowerCase().replace(/\s+/g, "");
   if (key.includes("conservative")) return TEMPLATE_STYLES.conservative;
   if (key.includes("permissive")) return TEMPLATE_STYLES.permissive;
+  if (key.includes("shopping")) return TEMPLATE_STYLES.shopping;
+  if (key.includes("procurement")) return TEMPLATE_STYLES.procurement;
+  if (key.includes("ad")) return TEMPLATE_STYLES.adspending;
   return TEMPLATE_STYLES.moderate;
 }
 
@@ -137,15 +133,10 @@ export default function RulesPage() {
     () => getAgentRules(selectedAgentId)
   );
 
-  const { data: fetchedTemplates } = useSWR(
-    selectedAgentId ? `templates-${selectedAgentId}` : null,
-    () => getRuleTemplates(selectedAgentId).catch(() => null)
+  const { data: templates = [] } = useSWR<RuleTemplate[]>(
+    "rule-templates",
+    getGlobalRuleTemplates
   );
-
-  const templates: RuleTemplate[] =
-    fetchedTemplates && fetchedTemplates.length > 0
-      ? fetchedTemplates
-      : FALLBACK_TEMPLATES;
 
   const [addOpen, setAddOpen] = useState(false);
   const [ruleType, setRuleType] = useState("");
@@ -299,7 +290,7 @@ export default function RulesPage() {
         <h2 className="text-base font-semibold text-slate-900 dark:text-white mb-3 font-heading">
           Quick Setup Templates
         </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {templates.map((tmpl) => {
             const style = getTemplateStyle(tmpl.name);
             const isApplying = applyingTemplate === tmpl.name;
