@@ -35,6 +35,7 @@ import {
 import { toast } from "sonner";
 import { Plus, Shield, Loader2, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 const RULE_TYPES = [
   { value: "max_per_transaction", label: "Max per transaction", hasAmount: true },
@@ -479,12 +480,23 @@ export default function RulesPage() {
       {/* Agent selector */}
       <Card>
         <CardContent className="pt-4 pb-4">
-          <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
-            <div className="flex-1 space-y-2">
-              <Label>Select agent</Label>
-              {agentsLoading ? (
-                <Skeleton className="h-10 w-full" />
-              ) : (
+          {agentsLoading ? (
+            <Skeleton className="h-10 w-full" />
+          ) : agents?.filter((a) => a.status !== "revoked").length === 0 ? (
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+              <p className="flex-1 text-sm text-muted-foreground">
+                No agents yet. Create your first agent to start configuring rules.
+              </p>
+              <Link href="/agents">
+                <Button className="flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-150">
+                  Create agent
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-end">
+              <div className="flex-1 space-y-2">
+                <Label>Select agent</Label>
                 <Select
                   value={selectedAgentId}
                   onValueChange={(v) => setSelectedAgentId(v ?? "")}
@@ -513,18 +525,18 @@ export default function RulesPage() {
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              {selectedAgentId && (
+                <Button
+                  onClick={() => setAddOpen(true)}
+                  className="gap-2 flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-150"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add rule
+                </Button>
               )}
             </div>
-            {selectedAgentId && (
-              <Button
-                onClick={() => setAddOpen(true)}
-                className="gap-2 flex-shrink-0 bg-indigo-600 hover:bg-indigo-700 text-white transition-colors duration-150"
-              >
-                <Plus className="h-4 w-4" />
-                Add rule
-              </Button>
-            )}
-          </div>
+          )}
         </CardContent>
       </Card>
 
