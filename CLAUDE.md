@@ -31,8 +31,10 @@ Authorization gateway for AI agents and financial transactions.
 - [x] All old agentgate/Railway URLs replaced with spendnod.com URLs across codebase
 - [x] Confirmation email HTML in Supabase
 - [x] 117 backend tests passing
-- [x] Rules page safety improvements: risk level badges, Permissive warning, clearer confirm dialog, Undo toast (POST /v1/agents/{id}/rules/restore), Conservative daily cap note
+- [x] Rules page safety improvements: risk level badges (Full control/Balanced/Hands-off), Permissive warning, clearer confirm dialog, Undo toast (POST /v1/agents/{id}/rules/restore), Conservative daily cap note
 - [x] migration 006_rule_backups.sql deployed — rule_backups table live in Supabase; restore endpoint deployed to Railway
+- [x] Overview page: auto-retry stats fetch once after 2s before showing error banner
+- [x] Rules page: empty state with "Create agent" CTA when user has no agents
 
 ## Remaining TODOs
 
