@@ -47,6 +47,34 @@ const RULE_TYPES = [
   { value: "blocked_categories", label: "Blocked categories", hasList: true },
 ];
 
+const FALLBACK_TEMPLATES: RuleTemplate[] = [
+  {
+    name: "Conservative",
+    description: "Maximum protection — nothing auto-approves. Every request requires your review.",
+    rules: [
+      { rule_type: "require_approval_above", value: { amount: 0 } },
+      { rule_type: "max_per_day", value: { amount: 50 } },
+    ],
+  },
+  {
+    name: "Moderate",
+    description: "Approve small purchases automatically, flag large ones for review.",
+    rules: [
+      { rule_type: "auto_approve_below", value: { amount: 25 } },
+      { rule_type: "require_approval_above", value: { amount: 100 } },
+      { rule_type: "max_per_day", value: { amount: 200 } },
+    ],
+  },
+  {
+    name: "Permissive",
+    description: "Higher auto-approve threshold with a daily spending cap.",
+    rules: [
+      { rule_type: "auto_approve_below", value: { amount: 100 } },
+      { rule_type: "max_per_day", value: { amount: 500 } },
+    ],
+  },
+];
+
 const TEMPLATE_STYLES: Record<
   string,
   { border: string; bg: string; badge: string; badgeText: string; applyBtn: string }
@@ -133,10 +161,11 @@ export default function RulesPage() {
     () => getAgentRules(selectedAgentId)
   );
 
-  const { data: templates = [] } = useSWR<RuleTemplate[]>(
+  const { data: fetchedTemplates } = useSWR<RuleTemplate[] | null>(
     "rule-templates",
-    getGlobalRuleTemplates
+    () => getGlobalRuleTemplates().catch(() => null)
   );
+  const templates = fetchedTemplates ?? FALLBACK_TEMPLATES;
 
   const [addOpen, setAddOpen] = useState(false);
   const [ruleType, setRuleType] = useState("");
