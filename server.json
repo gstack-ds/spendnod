@@ -5,10 +5,10 @@
   "description": "AI agent spending controls. Set limits, blocklists, and caps. Approve transactions from your phone.",
   "websiteUrl": "https://spendnod.com",
   "repository": {
-    "url": "https://github.com/gstack-ds/agent-gate",
+    "url": "https://github.com/gstack-ds/spendnod",
     "source": "github"
   },
-  "version": "1.0.1",
+  "version": "1.0.2",
   "remotes": [
     {
       "url": "https://api.spendnod.com/mcp",
