@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { HandoffMark } from "@/components/ui/handoff-mark";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { createClient } from "@/lib/supabase/client";
@@ -108,8 +109,8 @@ export function Sidebar() {
     <>
       {/* Logo */}
       <div className="flex items-center gap-2.5 px-4 py-5 border-b border-slate-800">
-        <img src="/spendnod-shield.svg" width={28} height={28} alt="SpendNod" className="flex-shrink-0" />
-        <span className="font-semibold text-lg text-white tracking-tight">SpendNod</span>
+        <HandoffMark size={28} />
+        <span className="text-lg text-white tracking-tight"><span className="font-semibold">Spend</span><span className="font-bold">Nod</span></span>
       </div>
 
       {/* Nav */}
@@ -202,8 +203,8 @@ export function Sidebar() {
       {/* Mobile header */}
       <div className="md:hidden fixed top-0 left-0 right-0 z-40 flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-800">
         <div className="flex items-center gap-2">
-          <img src="/spendnod-shield.svg" width={20} height={20} alt="SpendNod" />
-          <span className="font-semibold text-white">SpendNod</span>
+          <HandoffMark size={20} />
+          <span className="text-white"><span className="font-semibold">Spend</span><span className="font-bold">Nod</span></span>
         </div>
         <Button
           variant="ghost"

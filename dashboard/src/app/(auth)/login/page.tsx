@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { HandoffMark } from "@/components/ui/handoff-mark";
 
 const CALLBACK_URL =
   typeof window !== "undefined"
@@ -78,9 +79,11 @@ export default function LoginPage() {
         <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-200 dark:border-slate-700 p-8">
           {/* Logo */}
           <div className="flex flex-col items-center mb-6">
-            <img src="/spendnod-shield.svg" width={48} height={48} alt="SpendNod" className="mb-3" />
-            <h1 className="text-2xl font-semibold text-slate-900 dark:text-white font-heading">
-              SpendNod
+            <div className="mb-3">
+              <HandoffMark size={48} />
+            </div>
+            <h1 className="text-2xl text-slate-900 dark:text-white font-heading">
+              <span className="font-semibold">Spend</span><span className="font-bold">Nod</span>
             </h1>
             <p className="text-sm text-slate-500 dark:text-slate-400 text-center mt-1">
               Authorize your AI agents with confidence
