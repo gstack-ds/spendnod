@@ -28,8 +28,15 @@ export const metadata: Metadata = {
   title: "SpendNod Dashboard",
   description: "Control panel for AI agent authorization",
   icons: {
-    icon: "/favicon-32.png",
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-16.png", sizes: "16x16", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: { url: "/apple-touch-icon.png", sizes: "180x180" },
   },
+  manifest: "/site.webmanifest",
 };
 
 export default function RootLayout({
